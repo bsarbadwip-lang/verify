@@ -8,7 +8,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+console.log(`Refill API running on port ${PORT}`);
 const API_KEY = process.env.API_KEY;
 const RPC_URL = process.env.RPC_URL || 'https://bsc-dataseed.binance.org/';
 const REFILL_PRIVATE_KEY = process.env.REFILL_PRIVATE_KEY;
