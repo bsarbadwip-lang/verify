@@ -8,9 +8,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-console.log(`Refill API running on port ${PORT}`);
+const PORT = process.env.PORT; // <<--- Render port
+
 const API_KEY = process.env.API_KEY;
 const RPC_URL = process.env.RPC_URL || 'https://bsc-dataseed.binance.org/';
 const REFILL_PRIVATE_KEY = process.env.REFILL_PRIVATE_KEY;
@@ -22,24 +21,17 @@ if (!API_KEY || !REFILL_PRIVATE_KEY) {
   process.exit(1);
 }
 
-const provider = new ethers.JsonRpcProvider(RPC_URL); // ethers v6
+const provider = new ethers.JsonRpcProvider(RPC_URL); 
 const refillWallet = new ethers.Wallet(REFILL_PRIVATE_KEY, provider);
 
-// Middleware to validate API key
 function requireApiKey(req, res, next) {
   const key = req.header('x-api-key');
-  if (key !== API_KEY) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
+  if (key !== API_KEY) return res.status(401).json({ error: 'Invalid API key' });
   next();
 }
 
 function isAddress(a) {
-  try {
-    return ethers.isAddress(a); // v6 syntax
-  } catch {
-    return false;
-  }
+  try { return ethers.isAddress(a); } catch { return false; }
 }
 
 app.post('/api/get-balance', requireApiKey, async (req, res) => {
