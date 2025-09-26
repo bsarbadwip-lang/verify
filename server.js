@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT; // <<--- Render port
+const PORT = process.env.PORT; // Render port
 
 const API_KEY = process.env.API_KEY;
 const RPC_URL = process.env.RPC_URL || 'https://bsc-dataseed.binance.org/';
@@ -17,7 +17,7 @@ const USDT_CONTRACT = process.env.USDT_CONTRACT || '0x55d398326f99059fF775485246
 const MAX_REFILL_BNB = process.env.MAX_REFILL_BNB || '0.0005';
 
 if (!API_KEY || !REFILL_PRIVATE_KEY) {
-  console.error('ERROR: Please set API_KEY and REFILL_PRIVATE_KEY in .env');
+  console.error('❌ ERROR: Please set API_KEY and REFILL_PRIVATE_KEY in .env');
   process.exit(1);
 }
 
@@ -34,6 +34,7 @@ function isAddress(a) {
   try { return ethers.isAddress(a); } catch { return false; }
 }
 
+// 🔹 Get balance
 app.post('/api/get-balance', requireApiKey, async (req, res) => {
   try {
     const { address, token } = req.body;
@@ -45,7 +46,10 @@ app.post('/api/get-balance', requireApiKey, async (req, res) => {
     }
 
     if (token.toUpperCase() === 'USDT') {
-      const abi = ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)'];
+      const abi = [
+        'function balanceOf(address) view returns (uint256)',
+        'function decimals() view returns (uint8)'
+      ];
       const contract = new ethers.Contract(USDT_CONTRACT, abi, provider);
       const raw = await contract.balanceOf(address);
       const decimals = await contract.decimals();
@@ -54,10 +58,12 @@ app.post('/api/get-balance', requireApiKey, async (req, res) => {
 
     return res.status(400).json({ error: 'unsupported token' });
   } catch (err) {
+    console.error("❌ ERROR in /api/get-balance:", err);
     return res.status(500).json({ error: 'internal error', details: err.message });
   }
 });
 
+// 🔹 Refill endpoint
 app.post('/api/refill', requireApiKey, async (req, res) => {
   try {
     const { to, amount } = req.body;
@@ -69,13 +75,17 @@ app.post('/api/refill', requireApiKey, async (req, res) => {
     if (amountBn > maxBn) return res.status(400).json({ error: `amount exceeds max allowed (${MAX_REFILL_BNB} BNB)` });
 
     const serverBal = await refillWallet.getBalance();
-    if (serverBal < amountBn) return res.status(400).json({ error: 'server wallet has insufficient BNB' });
+    if (serverBal < amountBn) {
+      return res.status(400).json({ error: 'server wallet has insufficient BNB', balance: ethers.formatEther(serverBal) });
+    }
 
     const tx = await refillWallet.sendTransaction({ to, value: amountBn });
     return res.json({ status: 'success', txHash: tx.hash });
   } catch (err) {
+    console.error("❌ ERROR in /api/refill:", err);
     return res.status(500).json({ error: 'internal error', details: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Refill API running on port ${PORT}`));
+// Start server
+app.listen(PORT, () => console.log(`🚀 Refill API running on port ${PORT}`));
